@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-import asyncio
+
 import sys, os, socket, time
 import threading
 sys.path.append("../emphaticDemo")       # for params

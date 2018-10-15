@@ -6,7 +6,6 @@ sys.path.append("../emphaticDemo")       # for params
 import params
 from framedSock import FramedStreamSock
 from threading import Thread
-import time
 
 switchesVarDefaults = (
     (('-s', '--server'), 'server', "127.0.0.1:50001"),
@@ -15,7 +14,6 @@ switchesVarDefaults = (
     (('-f', '--file'), "file", "constitution.txt")
     )
 
-
 progname = "framedClient"
 paramMap = params.parseParams(switchesVarDefaults)
 
@@ -23,7 +21,6 @@ server, usage, debug, file_name = paramMap["server"], paramMap["usage"], paramMa
 
 if usage:
     params.usage()
-
 
 try:
     serverHost, serverPort = re.split(":", server)
