@@ -22,8 +22,8 @@ class FramedStreamSock:
           state = "getLength"
           msgLength = -1
           while True:
-               if (state == "getLength"):
-                    match = re.match(b'([^:]+):(.*)', self.rbuf) # look for colon
+               if state == "getLength":
+                    match = re.match(b'([^:]+):([\s\S]*)', self.rbuf) # look for colon
                     if match:
                          lengthStr, self.rbuf = match.groups()
                          try: 
