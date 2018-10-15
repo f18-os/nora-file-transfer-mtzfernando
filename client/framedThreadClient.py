@@ -2,13 +2,14 @@
 
 # Echo client program
 import socket, sys, re
+sys.path.append("../emphaticDemo")       # for params
 import params
 from framedSock import FramedStreamSock
 from threading import Thread
 import time
 
 switchesVarDefaults = (
-    (('-s', '--server'), 'server', "localhost:50001"),
+    (('-s', '--server'), 'server', "127.0.0.1:50001"),
     (('-d', '--debug'), "debug", False), # boolean (set if present)
     (('-?', '--usage'), "usage", False), # boolean (set if present)
     (('-f', '--file'), "file", "constitution.txt")
@@ -18,7 +19,7 @@ switchesVarDefaults = (
 progname = "framedClient"
 paramMap = params.parseParams(switchesVarDefaults)
 
-server, usage, debug, file_name  = paramMap["server"], paramMap["usage"], paramMap["debug"], paramMap["file"]
+server, usage, debug, file_name = paramMap["server"], paramMap["usage"], paramMap["debug"], paramMap["file"]
 
 if usage:
     params.usage()
@@ -61,17 +62,30 @@ class ClientThread(Thread):
            print('could not open socket')
            sys.exit(1)
 
-       framedSend(s, file_name.encode(), debug)  # Send the request for the file.
-       response = framedReceive(s, debug)  # Wait for the response from the server.
-       if response.decode() == "File exists":  # If file already on the server shutdown.
-           print("The file is already in the server. Closing the socket")
-           s.close()
-       else:
-           while data:  # Finish sending the rest of the file 100 bytes at the time.
-               framedSend(s, data.encode(), debug)
-               data = file.read(100)
-           s.shutdown(socket.SHUT_WR)  # Shutdown the socket.
+       try:                                                                 # Try to open the file to put on server.
+           file = open(file_name, 'r')                                      # Open the file.
+           if debug: print("OPENED FILE")
+           data = file.read(100)                                            # Read 100 bytes from the file.
+       except IOError:
+           print("File does not exists or unable to open. Shutting down!")  # Shutdown if unable to open file.
+           sys.exit(0)
 
-for i in range(100):
+       fs = FramedStreamSock(s, debug=debug)
+
+       fs.sendmsg(file_name.encode())                                       # Send the file request.
+       response = fs.receivemsg()                                           # Wait for response.
+
+       if response.decode() == "File exists":                               # If file already on the server shutdown.
+           print("The file is already in the server. Closing the thread.")
+           file.close()                                                     # Close the file.
+           return
+       else:                                                                # Finish sending the rest of the file 100 bytes at the time.
+           print("Sending the file to the server!")
+           while data:
+               fs.sendmsg(data.encode())                                    # Send the data in the file, 100 bytes at a time.
+               data = file.read(100)                                        # Read the next 100 bytes.
+           file.close()                                                     # Close the file when done reading.
+           fs.sendmsg(b"")                                                  # Send empty string to tell server client is done sending the file.
+
+for i in range(10):
     ClientThread(serverHost, serverPort, debug)
-
